@@ -116,10 +116,21 @@ func authValidator(user, pass string, c echo.Context) (bool, error) {
 	return false, nil
 }
 
+////////// Middlewares section //////////
+func ServerHeader(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		c.Response().Header().Set(echo.HeaderServer, "AdamVu/1.0")
+		c.Response().Header().Set("Custom-Header", "No-Value")
+		return next(c)
+	}
+}
+
 func main() {
 	fmt.Println("Welcome to the Echo Web Server!")
 
 	e := echo.New()
+
+	e.Use(ServerHeader)
 
 	g := e.Group("/admin")
 

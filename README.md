@@ -13,4 +13,6 @@ curl -X POST -H 'Content-Type: application/json' -d '{"name":"Amber","age":"1"}'
 
 curl -X GET localhost:8000/admin/main
 curl -X GET -u adam:12345 localhost:8000/admin/main
+
+curl -v -X GET localhost:8000
 ```
