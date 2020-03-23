@@ -108,6 +108,6 @@ func main() {
 	e.GET("/cats/:data", getCats)
 	e.POST("/addcat", addCat)
 	e.POST("/adddog", addDog)
-	e.POST("addhamster", addHamster)
+	e.POST("/addhamster", addHamster)
 	e.Start(":8000")
 }
