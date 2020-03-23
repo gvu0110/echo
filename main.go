@@ -11,6 +11,11 @@ import (
 	"github.com/labstack/echo/middleware"
 )
 
+const (
+	username = "adam"
+	password = "12345"
+)
+
 type Cat struct {
 	Name string `json:"name"`
 	Age  string `json:"age"`
@@ -104,6 +109,13 @@ func mainAdmin(c echo.Context) error {
 	return c.String(http.StatusOK, "You are in the main Admin page!")
 }
 
+func authValidator(user, pass string, c echo.Context) (bool, error) {
+	if user == username && pass == password {
+		return true, nil
+	}
+	return false, nil
+}
+
 func main() {
 	fmt.Println("Welcome to the Echo Web Server!")
 
@@ -116,6 +128,9 @@ func main() {
 		Format:           `[${time_custom}]  ${status}  ${method}  ${host}${path}  ${latency_human}` + "\n",
 		CustomTimeFormat: "2006-01-02 15:04:05",
 	}))
+
+	// Use middleware for basic authentication
+	g.Use(middleware.BasicAuth(authValidator))
 
 	g.GET("/main", mainAdmin)
 
