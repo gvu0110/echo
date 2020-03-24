@@ -15,4 +15,6 @@ curl -X GET localhost:8000/admin/main
 curl -X GET -u adam:12345 localhost:8000/admin/main
 
 curl -v -X GET localhost:8000
+
+curl -v -c cookie.txt -X GET "localhost:8000/login?username=adam&password=12345"
 ```

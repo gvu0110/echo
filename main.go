@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
@@ -14,6 +15,9 @@ import (
 const (
 	username = "adam"
 	password = "12345"
+
+	cookieName  = "sessionID"
+	cookieValue = "8500RfpFDt&S"
 )
 
 type Cat struct {
@@ -109,11 +113,34 @@ func mainAdmin(c echo.Context) error {
 	return c.String(http.StatusOK, "You are in the main Admin page!")
 }
 
+func mainCookie(c echo.Context) error {
+	return c.String(http.StatusOK, "You are in the main Cookie page!")
+}
+
 func authValidator(user, pass string, c echo.Context) (bool, error) {
 	if user == username && pass == password {
 		return true, nil
 	}
 	return false, nil
+}
+
+func logIn(c echo.Context) error {
+	user := c.QueryParam("username")
+	pass := c.QueryParam("password")
+
+	if user == username && pass == password {
+		cookie := &http.Cookie{}
+		// cookie := new(http.Cookie)
+
+		cookie.Name = cookieName
+		cookie.Value = cookieValue
+		cookie.Expires = time.Now().Add(8 * time.Hour)
+
+		c.SetCookie(cookie)
+
+		return c.String(http.StatusOK, "You are logged in!")
+	}
+	return c.String(http.StatusUnauthorized, "Your username or password is invalid!")
 }
 
 ////////// Middlewares section //////////
@@ -125,6 +152,23 @@ func ServerHeader(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
+func checkCookie(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		cookie, err := c.Cookie(cookieName)
+
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+
+		if cookie.Value == cookieValue {
+			return next(c)
+		}
+
+		return c.String(http.StatusUnauthorized, "You don't have the right cookie")
+	}
+}
+
 func main() {
 	fmt.Println("Welcome to the Echo Web Server!")
 
@@ -132,19 +176,25 @@ func main() {
 
 	e.Use(ServerHeader)
 
-	g := e.Group("/admin")
+	adminGroup := e.Group("/admin")
+	cookieGroup := e.Group("/cookie")
+
+	cookieGroup.Use(checkCookie)
 
 	// Use middleware to log server interaction
-	g.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
+	adminGroup.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
 		Format:           `[${time_custom}]  ${status}  ${method}  ${host}${path}  ${latency_human}` + "\n",
 		CustomTimeFormat: "2006-01-02 15:04:05",
 	}))
 
 	// Use middleware for basic authentication
-	g.Use(middleware.BasicAuth(authValidator))
+	adminGroup.Use(middleware.BasicAuth(authValidator))
 
-	g.GET("/main", mainAdmin)
+	adminGroup.GET("/main", mainAdmin)
 
+	cookieGroup.GET("/main", mainCookie)
+
+	e.GET("/login", logIn)
 	e.GET("/", hello)
 	e.GET("/cats/:data", getCats)
 	e.POST("/addcat", addCat)
