@@ -18,8 +18,9 @@ const (
 	password  = "12345"
 	secretKey = "mySecret"
 
-	cookieName  = "sessionID"
-	cookieValue = "8500RfpFDt&S"
+	cookieName    = "sessionID"
+	cookieValue   = "8500RfpFDt&S"
+	JWTCookieName = "JWTCookie"
 )
 
 type Cat struct {
@@ -163,6 +164,14 @@ func logIn(c echo.Context) error {
 			return c.String(http.StatusInternalServerError, "Something went wrong!")
 		}
 
+		JWTCookie := &http.Cookie{}
+
+		JWTCookie.Name = JWTCookieName
+		JWTCookie.Value = token
+		JWTCookie.Expires = time.Now().Add(8 * time.Hour)
+
+		c.SetCookie(JWTCookie)
+
 		return c.JSON(http.StatusOK, map[string]string{
 			"message": "You are logged in!",
 			"token":   token,
@@ -238,6 +247,7 @@ func main() {
 	JWTGroup.Use(middleware.JWTWithConfig(middleware.JWTConfig{
 		SigningKey:    []byte(secretKey),
 		SigningMethod: "HS512",
+		TokenLookup:   fmt.Sprintf("cookie:%s", JWTCookieName),
 	}))
 
 	adminGroup.GET("/main", mainAdmin)
