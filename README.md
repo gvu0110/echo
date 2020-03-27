@@ -17,4 +17,10 @@ curl -X GET -u adam:12345 localhost:8000/admin/main
 curl -v -X GET localhost:8000
 
 curl -v -c cookie.txt -X GET "localhost:8000/login?username=adam&password=12345"
+
+# Get JWT Token
+curl "localhost:8000/login?username=adam&password=12345"
+
+curl localhost:8000/jwt/main
+curl -H "Accept: application/json" -H "Authorization: Bearer ${TOKEN}" localhost:8000/jwt/main
 ```

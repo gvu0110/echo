@@ -8,13 +8,15 @@ import (
 	"net/http"
 	"time"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 )
 
 const (
-	username = "adam"
-	password = "12345"
+	username  = "adam"
+	password  = "12345"
+	secretKey = "mySecret"
 
 	cookieName  = "sessionID"
 	cookieValue = "8500RfpFDt&S"
@@ -33,6 +35,11 @@ type Dog struct {
 type Hamster struct {
 	Name string `json:"name"`
 	Age  string `json:"age"`
+}
+
+type JWTClaims struct {
+	Name string `json:"name"`
+	jwt.StandardClaims
 }
 
 func hello(c echo.Context) error {
@@ -117,6 +124,17 @@ func mainCookie(c echo.Context) error {
 	return c.String(http.StatusOK, "You are in the main Cookie page!")
 }
 
+func mainJWT(c echo.Context) error {
+	user := c.Get("user")
+	token := user.(*jwt.Token)
+
+	claims := token.Claims.(jwt.MapClaims)
+
+	log.Printf("username: %q, userID: %q\n", claims["name"], claims["jti"])
+
+	return c.String(http.StatusOK, "You are in the main JWT page!")
+}
+
 func authValidator(user, pass string, c echo.Context) (bool, error) {
 	if user == username && pass == password {
 		return true, nil
@@ -138,9 +156,37 @@ func logIn(c echo.Context) error {
 
 		c.SetCookie(cookie)
 
-		return c.String(http.StatusOK, "You are logged in!")
+		// TODO: create JWT token
+		token, err := createJWTToken()
+		if err != nil {
+			log.Println("ERROR: Cannot create JWT Token")
+			return c.String(http.StatusInternalServerError, "Something went wrong!")
+		}
+
+		return c.JSON(http.StatusOK, map[string]string{
+			"message": "You are logged in!",
+			"token":   token,
+		})
 	}
 	return c.String(http.StatusUnauthorized, "Your username or password is invalid!")
+}
+
+func createJWTToken() (string, error) {
+	claims := JWTClaims{
+		username,
+		jwt.StandardClaims{
+			Id:        "main_user_id",
+			ExpiresAt: time.Now().Add(8 * time.Hour).Unix(),
+		},
+	}
+	rawToken := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
+
+	token, err := rawToken.SignedString([]byte(secretKey))
+	if err != nil {
+		return "", err
+	}
+
+	return token, nil
 }
 
 ////////// Middlewares section //////////
@@ -178,8 +224,7 @@ func main() {
 
 	adminGroup := e.Group("/admin")
 	cookieGroup := e.Group("/cookie")
-
-	cookieGroup.Use(checkCookie)
+	JWTGroup := e.Group("/jwt")
 
 	// Use middleware to log server interaction
 	adminGroup.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
@@ -189,10 +234,15 @@ func main() {
 
 	// Use middleware for basic authentication
 	adminGroup.Use(middleware.BasicAuth(authValidator))
+	cookieGroup.Use(checkCookie)
+	JWTGroup.Use(middleware.JWTWithConfig(middleware.JWTConfig{
+		SigningKey:    []byte(secretKey),
+		SigningMethod: "HS512",
+	}))
 
 	adminGroup.GET("/main", mainAdmin)
-
 	cookieGroup.GET("/main", mainCookie)
+	JWTGroup.GET("/main", mainJWT)
 
 	e.GET("/login", logIn)
 	e.GET("/", hello)
