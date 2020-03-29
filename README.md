@@ -23,4 +23,6 @@ curl "localhost:8000/login?username=adam&password=12345"
 
 curl localhost:8000/jwt/main
 curl -H "Accept: application/json" -H "Authorization: Bearer ${TOKEN}" localhost:8000/jwt/main
+
+cd static/ ; go run ../main.go
 ```

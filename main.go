@@ -230,6 +230,7 @@ func main() {
 	e := echo.New()
 
 	e.Use(ServerHeader)
+	e.Use(middleware.Static("./"))
 
 	adminGroup := e.Group("/admin")
 	cookieGroup := e.Group("/cookie")
@@ -255,7 +256,7 @@ func main() {
 	JWTGroup.GET("/main", mainJWT)
 
 	e.GET("/login", logIn)
-	e.GET("/", hello)
+	e.GET("/hello", hello)
 	e.GET("/cats/:data", getCats)
 	e.POST("/addcat", addCat)
 	e.POST("/adddog", addDog)
